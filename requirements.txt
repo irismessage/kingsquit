@@ -1,2 +1,12 @@
+beautifulsoup4==4.4.1
+cchardet==2.1.7
+chardet==4.0.0
+cssutils==2.2.0
+enum34==1.1.10
 ffmpeg-python==0.2.0
 future==0.18.2
+lxml==4.6.3
+pycaption==1.0.2
+pysrt==1.1.2
+six==1.15.0
+youtube-dl==2021.3.14
