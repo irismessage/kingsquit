@@ -5,6 +5,7 @@ from decimal import Decimal
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 
+# note: you must install ffmpeg executable
 import ffmpeg
 
 
@@ -38,7 +39,7 @@ class ClipRipper:
         duration = Decimal(str(t[1])) - Decimal(str(t[0]))
         clip_path = self.clips_folder / f'{t[0]}d{duration}.mp3'
         stream = ffmpeg.input(str(self.video_path), ss=t[0])
-        stream = ffmpeg.output(stream, str(clip_path), t=duration)
+        stream = ffmpeg.output(stream, str(clip_path), t=duration).global_args('-n')
         ffmpeg.run(stream)
 
 
@@ -58,14 +59,20 @@ def rip_all_audio_clips(video_path: Path, timestamps: list[tuple[float, float]])
 
 def add_audio_to_video(video_path: Path, audio_path: Path, timestamp: float, duration: float):
     # add the audio onto the video at the timestamp with ffmpeg
-    pass
+    video = ffmpeg.input(str(video_path))
+    audio = ffmpeg.input(str(audio_path), itsoffset=timestamp, t=duration)
+    stream = ffmpeg.output(video, audio, vcodec='copy', **{'async': 1})
+    ffmpeg.run(stream)
 
 
 def fill_empty_audio(video_path: Path, timestamps: list[tuple[float, float]]):
-    # remove audio from video
-    # for any duration not covered by a timestamp, add the original audio back
+    # todo: remove audio from video
     # will need to make algorithm more advanced if adding overlapping audio support
-    pass
+    for i in range(len(timestamps) - 1):
+        t1 = timestamps[i]
+        t2 = timestamps[i+1]
+        duration = t1[1] - t2[0]
+        add_audio_to_video(video_path, video_path, t1[1], duration)
 
 
 def main():
@@ -84,6 +91,7 @@ def main():
     # look for subtitle file by name
     # look for subtitle file by extension
     # look for subtitle file with subtitle on pypi
+    # convert subtitles to label track so user can edit it?
     if not verify_timestamp_pairs(timestamps):
         print('Invalid timestamps')
         return False
