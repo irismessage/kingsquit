@@ -12,6 +12,7 @@ import ffmpeg
 # randomly use a subsequent audio clip, or select a new one
 # randomly cut of audio clip even if the segment is ongoing
 # polish for general release
+# make the same dialogue make the same sound - record mappings, add text back to timestamps file
 
 
 videos_folder = Path('videos')
@@ -58,11 +59,29 @@ def rip_all_audio_clips(video_path: Path, timestamps: list[tuple[float, float]])
 
 
 def add_audio_to_video(video_path: Path, audio_path: Path, timestamp: float, duration: float):
-    # add the audio onto the video at the timestamp with ffmpeg
-    video = ffmpeg.input(str(video_path))
-    audio = ffmpeg.input(str(audio_path), itsoffset=timestamp, t=duration)
-    stream = ffmpeg.output(video, audio, vcodec='copy', **{'async': 1})
+    """Add the audio onto the video at the timestamp with ffmpeg."""
+    temp_video_path = video_path.with_stem(video_path.stem + '-temp')
+
+    video_head = ffmpeg.input(str(video_path), t=timestamp)
+    video_tail = ffmpeg.input(str(video_path), ss=timestamp+duration)
+
+    video_to_merge = ffmpeg.input(str(video_path), ss=timestamp, t=duration)
+    audio_to_merge = ffmpeg.input(str(audio_path), t=duration)
+    audio_merged = ffmpeg.filter([video_to_merge.audio, audio_to_merge], 'amerge')
+    video_merged = ffmpeg.concat(video_to_merge, audio_merged, v=1, a=1)
+
+    stream = ffmpeg.concat(
+        video_head,
+        video_merged,
+        video_tail
+    )
+    # stream = ffmpeg.output(stream, str(temp_video_path), vcodec='copy')
+    stream = ffmpeg.output(stream, str(temp_video_path))
+    print(ffmpeg.get_args(stream))
     ffmpeg.run(stream)
+
+    video_path.unlink()
+    temp_video_path.rename(video_path)
 
 
 def fill_empty_audio(video_path: Path, timestamps: list[tuple[float, float]]):
@@ -101,4 +120,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    vid = Path(r'C:\Users\joelm\Documents\_Programming\_python\kingsquit\videos\Half-Life VR but the AI is Self-Aware (ACT 1 - PART 1)-vDUYLDtC5Qw.mp4')
+    aud = Path(r'C:\Users\joelm\Documents\_Programming\_python\kingsquit\videos\audio-clips\Half-Life VR but the AI is Self-Aware (ACT 1 - PART 1)-vDUYLDtC5Qw.mp4\1.62d0.78.mp3')
+    add_audio_to_video(vid, aud, 0.0, 1.0)
