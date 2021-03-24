@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import json
+import random
 from decimal import Decimal
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
@@ -57,41 +58,32 @@ def rip_all_audio_clips(video_path: Path, timestamps: list[tuple[float, float]])
     with ThreadPoolExecutor() as threads:
         threads.map(clip_ripper.rip_audio_clip, timestamps)
 
-
-def add_audio_to_video(video_path: Path, audio_path: Path, timestamp: float, duration: float):
-    """Add the audio onto the video at the timestamp with ffmpeg."""
-    temp_video_path = video_path.with_stem(video_path.stem + '-temp')
-
-    video_head = ffmpeg.input(str(video_path), t=timestamp)
-    video_tail = ffmpeg.input(str(video_path), ss=timestamp+duration)
-
-    video_to_merge = ffmpeg.input(str(video_path), ss=timestamp, t=duration)
-    audio_to_merge = ffmpeg.input(str(audio_path), t=duration)
-    audio_merged = ffmpeg.filter([video_to_merge.audio, audio_to_merge], 'amerge')
-    video_merged = ffmpeg.concat(video_to_merge, audio_merged, v=1, a=1)
-
-    stream = ffmpeg.concat(
-        video_head,
-        video_merged,
-        video_tail
-    )
-    # stream = ffmpeg.output(stream, str(temp_video_path), vcodec='copy')
-    stream = ffmpeg.output(stream, str(temp_video_path))
-    print(ffmpeg.get_args(stream))
-    ffmpeg.run(stream)
-
-    video_path.unlink()
-    temp_video_path.rename(video_path)
+    return specific_clips_folder
 
 
-def fill_empty_audio(video_path: Path, timestamps: list[tuple[float, float]]):
-    # todo: remove audio from video
-    # will need to make algorithm more advanced if adding overlapping audio support
-    for i in range(len(timestamps) - 1):
-        t1 = timestamps[i]
-        t2 = timestamps[i+1]
-        duration = t1[1] - t2[0]
-        add_audio_to_video(video_path, video_path, t1[1], duration)
+def generate_audio_track(video_path: Path, clips_folder: Path, timestamps: list[tuple[float, float]]):
+    clips = list(clips_folder.iterdir())
+    concats = []
+
+    last = 0.0
+    for t in timestamps:
+        concats.append(ffmpeg.input(video_path, ss=last, to=t[0]).audio)
+
+        t_duration = t[1] - t[0]
+        cumulative_duration = 0.0
+        while cumulative_duration < t_duration:
+            random_clip = random.choice(clips)
+            cn = random_clip.stem
+            clip_duration = float(cn[cn.index('d')+1:])
+
+            concat_duration = min(clip_duration, t_duration-cumulative_duration)
+            cumulative_duration += concat_duration
+            concats.append(ffmpeg.input(str(random_clip), t=concat_duration))
+        last = t[1]
+
+    out_file = video_path.with_suffix('.mp3')
+    ffmpeg.concat(*concats).output(str(out_file), acodec='copy').run()
+    return out_file
 
 
 def main():
@@ -101,6 +93,8 @@ def main():
     if not video_path.is_file():
         print("Video doesn't exist")
         return False
+    video_info = ffmpeg.probe(str(video_path))
+    video_length_seconds = float(video_info['format']['duration'])
 
     print('Checking for timestamps file')
     # todo: change to just .json
@@ -111,16 +105,16 @@ def main():
     # look for subtitle file by extension
     # look for subtitle file with subtitle on pypi
     # convert subtitles to label track so user can edit it?
-    if not verify_timestamp_pairs(timestamps):
+    if not verify_timestamp_pairs(timestamps, video_length_seconds):
         print('Invalid timestamps')
         return False
 
     print('Ripping audio clips')
-    rip_all_audio_clips(video_path, timestamps)
+    clips_folder = rip_all_audio_clips(video_path, timestamps)
+
+    print('Generating new audio track')
+    new_audio = generate_audio_track(video_path, clips_folder, timestamps)
 
 
 if __name__ == '__main__':
-    # main()
-    vid = Path(r'C:\Users\joelm\Documents\_Programming\_python\kingsquit\videos\Half-Life VR but the AI is Self-Aware (ACT 1 - PART 1)-vDUYLDtC5Qw.mp4')
-    aud = Path(r'C:\Users\joelm\Documents\_Programming\_python\kingsquit\videos\audio-clips\Half-Life VR but the AI is Self-Aware (ACT 1 - PART 1)-vDUYLDtC5Qw.mp4\1.62d0.78.mp3')
-    add_audio_to_video(vid, aud, 0.0, 1.0)
+    main()
