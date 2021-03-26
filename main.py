@@ -61,6 +61,14 @@ def rip_all_audio_clips(video_path: Path, timestamps: list[tuple[float, float]])
     return specific_clips_folder
 
 
+# new plan
+# shuffle_clips
+#   shuffle chunks of clips
+#   re-mux clips to be the same duration for each timestamp again
+# reform_video
+#   add back original audio in between
+#   concatenate all clips with concat demuxer
+#   add to video
 def generate_audio_track(video_path: Path, clips_folder: Path, timestamps: list[tuple[float, float]]):
     clips = list(clips_folder.iterdir())
     concats = []
@@ -110,10 +118,10 @@ def main():
         return False
 
     print('Ripping audio clips')
-    clips_folder = rip_all_audio_clips(video_path, timestamps)
+    # clips_folder = rip_all_audio_clips(video_path, timestamps)
 
     print('Generating new audio track')
-    new_audio = generate_audio_track(video_path, clips_folder, timestamps)
+    # new_audio = generate_audio_track(video_path, clips_folder, timestamps)
 
 
 if __name__ == '__main__':
