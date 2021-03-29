@@ -10,6 +10,8 @@ from concurrent.futures import ThreadPoolExecutor
 import ffmpeg
 
 
+# setup.py
+# pyinstaller
 # randomly use a subsequent audio clip, or select a new one
 # randomly cut of audio clip even if the segment is ongoing
 # polish for general release
@@ -44,8 +46,8 @@ class ClipRipper:
         ffmpeg.run(stream)
 
 
-def rip_all_audio_clips(video_path: Path, timestamps: list[tuple[float, float]]):
-    clips_folder = video_path.with_suffix('') / 'audio_clips'
+def rip_all_audio_clips(video_path: Path, timestamps: list[tuple[float, float]], dest='audio-clips'):
+    clips_folder = video_path.with_suffix('') / dest
     clips_folder.mkdir(parents=True, exist_ok=True)
 
     clip_ripper = ClipRipper(video_path, clips_folder)
@@ -58,6 +60,17 @@ def rip_all_audio_clips(video_path: Path, timestamps: list[tuple[float, float]])
         threads.map(clip_ripper.rip_audio_clip, timestamps)
 
     return clips_folder
+
+
+def rip_intermediate_audio_clips(video_path: Path, timestamps: list[tuple[float, float]], video_duration: float):
+    intermediate_timestamps = []
+    if timestamps[0][0] != 0.0:
+        intermediate_timestamps.append((0.0, timestamps[0][0]))
+    intermediate_timestamps += [(timestamps[i][1], timestamps[i+1][0]) for i in range(len(timestamps)-1)]
+    if timestamps[-1][1] <= video_duration:
+        intermediate_timestamps.append((timestamps[-1][1], video_duration))
+
+    return rip_all_audio_clips(video_path, intermediate_timestamps, dest='intermediate-audio-clips')
 
 
 def shuffle_clips(video_folder: Path, jump_chance: float = 0.3):
@@ -79,6 +92,10 @@ def shuffle_clips(video_folder: Path, jump_chance: float = 0.3):
 
 
 def reform_shuffled_clips():
+    pass
+
+
+def generate_new_video():
     pass
 
 
@@ -142,10 +159,8 @@ def main():
         return False
 
     print('Ripping audio clips')
-    # clips_folder = rip_all_audio_clips(video_path, timestamps)
-
-    print('Generating new audio track')
-    # new_audio = generate_audio_track(video_path, clips_folder, timestamps)
+    rip_all_audio_clips(video_path, timestamps)
+    rip_intermediate_audio_clips(video_path, timestamps, video_length_seconds)
 
 
 if __name__ == '__main__':
