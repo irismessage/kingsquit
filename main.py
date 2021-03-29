@@ -60,6 +60,28 @@ def rip_all_audio_clips(video_path: Path, timestamps: list[tuple[float, float]])
     return clips_folder
 
 
+def shuffle_clips(video_folder: Path, jump_chance: float = 0.3):
+    clips_folder = video_folder / 'audio-clips'
+    clips = list(clips_folder.iterdir())
+    clips.sort()
+
+    clips_shuffled = []
+    while clips:
+        index = random.randint(0, len(clips))
+        while jump_chance < random.random():
+            try:
+                clips_shuffled.append(clips.pop(index))
+                index += 1
+            except IndexError:
+                break
+
+    return clips_shuffled
+
+
+def reform_shuffled_clips():
+    pass
+
+
 # new plan
 # shuffle_clips
 #   shuffle chunks of clips
