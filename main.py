@@ -17,7 +17,6 @@ import ffmpeg
 
 
 videos_folder = Path('videos')
-audio_clips_folder = videos_folder / 'audio-clips'
 
 
 def verify_timestamp_pairs(timestamps: list[tuple[float, float]], maximum: float = 0.0) -> bool:
@@ -46,10 +45,10 @@ class ClipRipper:
 
 
 def rip_all_audio_clips(video_path: Path, timestamps: list[tuple[float, float]]):
-    specific_clips_folder = audio_clips_folder / video_path.name
-    specific_clips_folder.mkdir(parents=True, exist_ok=True)
+    clips_folder = video_path.with_suffix('') / 'audio_clips'
+    clips_folder.mkdir(parents=True, exist_ok=True)
 
-    clip_ripper = ClipRipper(video_path, specific_clips_folder)
+    clip_ripper = ClipRipper(video_path, clips_folder)
     # one thread
     # for t in timestamps:
     #     clip_ripper.rip_audio_clip(t)
@@ -58,7 +57,7 @@ def rip_all_audio_clips(video_path: Path, timestamps: list[tuple[float, float]])
     with ThreadPoolExecutor() as threads:
         threads.map(clip_ripper.rip_audio_clip, timestamps)
 
-    return specific_clips_folder
+    return clips_folder
 
 
 # new plan
@@ -101,6 +100,9 @@ def main():
     if not video_path.is_file():
         print("Video doesn't exist")
         return False
+    video_folder = video_path.with_suffix('')
+    video_folder.mkdir()
+
     video_info = ffmpeg.probe(str(video_path))
     video_length_seconds = float(video_info['format']['duration'])
 
