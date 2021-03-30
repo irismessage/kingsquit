@@ -1,1 +1,1 @@
-pyinstaller -y --name kingsquit main.py
+pyinstaller -y --name kingsquit --icon graham.ico --onefile main.py
