@@ -16,8 +16,12 @@ import ffmpeg
 # randomly cut of audio clip even if the segment is ongoing
 # polish for general release
 # make the same dialogue make the same sound - record mappings, add text back to timestamps file
+# gold coin
+__version__ = '0.1.0'
 
 
+t_type = tuple[float, float]
+tl_type = list[t_type]
 videos_folder = Path('videos')
 
 
@@ -62,7 +66,7 @@ def rip_all_audio_clips(video_path: Path, timestamps: list[tuple[float, float]],
     return clips_folder
 
 
-def rip_intermediate_audio_clips(video_path: Path, timestamps: list[tuple[float, float]], video_duration: float):
+def rip_intermediate_audio_clips(video_path: Path, timestamps: tl_type, video_duration: float):
     intermediate_timestamps = []
     if timestamps[0][0] != 0.0:
         intermediate_timestamps.append((0.0, timestamps[0][0]))
@@ -91,23 +95,39 @@ def shuffle_clips(video_folder: Path, jump_chance: float = 0.3):
     return clips_shuffled
 
 
-def reform_shuffled_clips():
+def reform_shuffled_clips(video_path: Path, timestamps: tl_type, shuffled_clips: list[Path]):
     pass
 
 
-def generate_new_video():
-    pass
+def generate_new_video(video_path: Path):
+    video_folder = videos_folder.with_suffix('')
+    shuffled_clips_folder = video_folder / 'audio-shuffled'
+    shuffled_clips = list(shuffled_clips_folder.iterdir())
+    shuffled_clips.sort()
+
+    # concatenate shuffled audio back into a single audio track
+    concat_folder = video_folder / 'audio-concat'
+    concat_folder.mkdir(exist_ok=True)
+    concat_file = concat_folder / 'concat.txt'
+    concat_output = concat_folder / 'audio.mp3'
+
+    with open(concat_file, 'w') as concat_file:
+        concat_file.writelines([f"file '{f}'" for f in shuffled_clips])
+    stream = ffmpeg.input(str(concat_file), format='concat', safe=0)
+    stream = ffmpeg.output(stream, str(concat_output), **{'c:v': 'copy', 'c:a': 'copy'})
+    ffmpeg.run(stream)
+
+    # combine new audio with video to create the new video
+    final_result_path = video_path.with_stem('(SHUFFLED)' + video_path.stem)
+
+    video_stream = ffmpeg.input(str(video_path)).video
+    audio_stream = ffmpeg.input(str(concat_output))
+    stream = ffmpeg.output(video_stream, audio_stream, str(final_result_path))
+    ffmpeg.run(stream)
 
 
-# new plan
-# shuffle_clips
-#   shuffle chunks of clips
-#   re-mux clips to be the same duration for each timestamp again
-# reform_video
-#   add back original audio in between
-#   concatenate all clips with concat demuxer
-#   add to video
-def generate_audio_track(video_path: Path, clips_folder: Path, timestamps: list[tuple[float, float]]):
+# doesn't work, keeping for now for referencing maybe writing reform_shuffled_clips
+def generate_audio_track(video_path: Path, clips_folder: Path, timestamps: tl_type):
     clips = list(clips_folder.iterdir())
     concats = []
 
@@ -161,6 +181,13 @@ def main():
     print('Ripping audio clips')
     rip_all_audio_clips(video_path, timestamps)
     rip_intermediate_audio_clips(video_path, timestamps, video_length_seconds)
+    print('Shuffling audio')
+    shuffled_clips = shuffle_clips(video_path)
+    reform_shuffled_clips(video_path, timestamps, shuffled_clips)
+    print('Creating new video with shuffled audio!')
+    generate_new_video(video_path)
+    print('Done.')
+    input('Press enter to exit')
 
 
 if __name__ == '__main__':
