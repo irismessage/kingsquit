@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+"""Main body of the code for shuffling dialogue in videos, including the main function."""
+
 import json
 import random
 from decimal import Decimal
@@ -21,7 +23,14 @@ tl_type = list[t_type]
 videos_folder = Path('kingsquit-videos')
 
 
-def verify_timestamp_pairs(timestamps: list[tuple[float, float]], maximum: float = 0.0) -> bool:
+def verify_timestamp_pairs(timestamps: tl_type, maximum: float) -> bool:
+    """Verify that each timestamp is valid, and there are no overlapping timestamps.
+
+    Args:
+        timestamps -- a list of tuples containing a start time and an end time as floats
+        maximum -- the maximum size of any timestamp (the duration of the video)
+    Returns True if the timestamps list is valid, False otherwise.
+    """
     last = 0.0
     for t in timestamps:
         if last >= t[0] or t[0] >= t[1]:
@@ -34,19 +43,42 @@ def verify_timestamp_pairs(timestamps: list[tuple[float, float]], maximum: float
 
 # made this way to work with ThreadPoolExecutor
 class ClipRipper:
+    """Class for storing the video path and output path for ripping clips."""
+
     def __init__(self, video_path, clips_folder):
         self.video_path = video_path
         self.clips_folder = clips_folder
 
-    def rip_audio_clip(self, t: tuple[float, float]):
+    def rip_audio_clip(self, t: t_type):
+        """Take a snippet of audio from a video and save it to its own mp3 file.
+
+        Args:
+            t -- a tuple of the time to start the clip and the time to end the clip, in seconds
+        Returns nothing.
+
+        Gets the video path and output folder path from the object. This is so it can easily be used in a
+        ThreadPoolExecutor.
+        Saves the mp3 file with the name {start time}d{duration}.mp3 where both start time and duration are in seconds,
+        like the timestamp argument.
+        """
         duration = Decimal(str(t[1])) - Decimal(str(t[0]))
         clip_path = self.clips_folder / f'{t[0]}d{duration}.mp3'
         stream = ffmpeg.input(str(self.video_path), ss=t[0])
+        # no need to streamcopy because it's fast anyway
+        # also skip clips already ripped
         stream = ffmpeg.output(stream, str(clip_path), t=duration).global_args('-n')
         ffmpeg.run(stream)
 
 
-def rip_all_audio_clips(video_path: Path, timestamps: list[tuple[float, float]], dest='audio-clips'):
+def rip_all_audio_clips(video_path: Path, timestamps: tl_type, dest='audio-clips') -> Path:
+    """Rip an audio clip from the video for each timestamp.
+
+    Args:
+        video_path -- path to the video to rip clips from
+        timestamps -- list of tuple start/end timestamps
+        dest -- name of the destination folder
+    Returns the path of the destination folder.
+    """
     clips_folder = video_path.with_suffix('') / dest
     clips_folder.mkdir(parents=True, exist_ok=True)
 
@@ -63,6 +95,16 @@ def rip_all_audio_clips(video_path: Path, timestamps: list[tuple[float, float]],
 
 
 def rip_intermediate_audio_clips(video_path: Path, timestamps: tl_type, video_duration: float):
+    """Calculate timestamps where there are is no dialogue and rip them.
+
+    Args:
+        video_path -- path to the video to rip clips from
+        timestamps -- timestamps of dialogue, used to calculate where there is no dialogue
+        video_duration -- length of the video in seconds, used to calculate the final timestamp
+    Returns the path of the destination folder.
+
+    Uses rip_all_audio_clips to rip the clips after calculating their timestamps.
+    """
     intermediate_timestamps = []
     if timestamps[0][0] != 0.0:
         intermediate_timestamps.append((0.0, timestamps[0][0]))
@@ -74,11 +116,20 @@ def rip_intermediate_audio_clips(video_path: Path, timestamps: tl_type, video_du
 
 
 def shuffle_clips(video_folder: Path, jump_chance: float = 0.3):
+    """Shuffle the files in the folder in chunks.
+
+    Args:
+        video_folder  -- path to the base folder containing the audio-clips folder
+        jump_chance -- chance that audio will jump to a new random clip instead of continuing to the next clip.
+                       therefore, the size of each chunk on average should the number of clips / jump chance
+    Returns a last of clips paths, shuffled.
+    """
     clips_folder = video_folder / 'audio-clips'
     clips = list(clips_folder.iterdir())
     clips.sort()
 
     clips_shuffled = []
+    # todo: more efficient implementation by just getting random indices then splitting at them?
     while clips:
         index = random.randint(0, len(clips))
         while jump_chance < random.random():
@@ -92,10 +143,31 @@ def shuffle_clips(video_folder: Path, jump_chance: float = 0.3):
 
 
 def reform_shuffled_clips(video_path: Path, timestamps: tl_type, shuffled_clips: list[Path]):
-    pass
+    """Cut and join shuffled clips to match the timestamps again.
+
+    Args:
+        video_path -- path to the video, used to get the video folder and clips folder
+        timestamps -- list of tuple timestamps to make the clips conform to
+        shuffled_clips -- ordered list of clips paths
+    Returns the path to the folder of shuffled and reformed clips.
+    """
+    # todo: implement
+    video_folder = videos_folder.with_suffix('')
+    shuffled_clips_folder = video_folder / 'audio-shuffled'
+
+    return shuffled_clips_folder
 
 
 def generate_new_video(video_path: Path):
+    """Reform shuffled clips into a single audio track, and join it back to the video.
+
+    Args:
+        video_path -- path to the video, also used to get the video folder and clips folder
+    Returns nothing.
+
+    Ran after the clips have been ripped, shuffled, and reforms. Concatenates the clips with the concat demuxer,
+    then takes that and the original video to make a new video file.
+    """
     video_folder = videos_folder.with_suffix('')
     shuffled_clips_folder = video_folder / 'audio-shuffled'
     shuffled_clips = list(shuffled_clips_folder.iterdir())
@@ -149,6 +221,7 @@ def generate_audio_track(video_path: Path, clips_folder: Path, timestamps: tl_ty
 
 
 def main():
+    """Run the program."""
     # if starts with http or https, use ydl to download video and subtitles
     video_name = input('Video name: ')
     video_path = videos_folder / video_name
