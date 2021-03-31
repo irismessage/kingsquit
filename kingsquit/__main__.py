@@ -1,3 +1,2 @@
 import kingsquit
-
 kingsquit.main()

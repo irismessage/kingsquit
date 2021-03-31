@@ -9,8 +9,7 @@ import pysrt
 def srt_to_timestamps(srt_path: Path):
     srt_subtitles = pysrt.open(srt_path)
 
-    secs = lambda t: t.ordinal/1000
-    timestamps = [(secs(s.start), secs(s.end)) for s in srt_subtitles]
+    timestamps = [(s.start.ordinal/1000, s.end.ordinal/1000) for s in srt_subtitles]
     with open(srt_path.with_suffix('.json'), 'w') as timestamps_file:
         json.dump(timestamps, timestamps_file)
 
@@ -36,15 +35,19 @@ def process(hook: dict):
     convert_subs(subtitle_path)
 
 
-ydl_args = {
-    'format': 'mp4',
-    'writesubtitles': True,
-    'subtitlesformat': 'ttml',
-    'subtitleslangs': ['ko'],
-    'progress_hooks': [process],
-}
+def main(dest: str):
+    ydl_args = {
+        'outtmpl': f'{dest}/{youtube_yl.DEFAULT_OUTTMPL}',
+        'format': 'mp4',
+        'writesubtitles': True,
+        'writeautomaticsub': True,
+        'subtitlesformat': 'ttml',
+        'progress_hooks': [process],
+    }
 
-
-# with youtube_yl.YoutubeDL(ydl_args) as ydl:
-#     ydl.download(['https://youtu.be/vDUYLDtC5Qw'])
-convert_subs(Path('Half-Life VR but the AI is Self-Aware (ACT 1 - PART 1)-vDUYLDtC5Qw.ko.ttml'))
+    url = input('Youtube url: ')
+    subtitleslangs = input('Subtitle language to download (type nothing for any): ')
+    if subtitleslangs:
+        ydl_args['subtitleslangs'] = [subtitleslangs]
+    with youtube_yl.YoutubeDL(ydl_args) as ydl:
+        ydl.download([url])

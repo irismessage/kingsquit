@@ -10,10 +10,6 @@ from concurrent.futures import ThreadPoolExecutor
 import ffmpeg
 
 
-# setup.py
-# pyinstaller
-# randomly use a subsequent audio clip, or select a new one
-# randomly cut of audio clip even if the segment is ongoing
 # polish for general release
 # make the same dialogue make the same sound - record mappings, add text back to timestamps file
 # gold coin
@@ -22,7 +18,7 @@ __version__ = '0.1.0'
 
 t_type = tuple[float, float]
 tl_type = list[t_type]
-videos_folder = Path('videos')
+videos_folder = Path('kingsquit-videos')
 
 
 def verify_timestamp_pairs(timestamps: list[tuple[float, float]], maximum: float = 0.0) -> bool:
