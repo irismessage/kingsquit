@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """Main body of the code for shuffling dialogue in videos, including the main function."""
 
 import json
@@ -10,6 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 # note: you must install ffmpeg executable
 import ffmpeg
+import downloader
 
 
 # polish for general release
@@ -223,8 +222,10 @@ def generate_audio_track(video_path: Path, clips_folder: Path, timestamps: tl_ty
 def main():
     """Run the program."""
     # if starts with http or https, use ydl to download video and subtitles
-    video_name = input('Video name: ')
-    video_path = videos_folder / video_name
+    # video_name = input('Video name: ')
+    # video_path = videos_folder / video_name
+    video_path, subtitle_path = downloader.main(str(videos_folder))
+
     if not video_path.is_file():
         print("Video doesn't exist")
         return False
@@ -235,8 +236,7 @@ def main():
     video_length_seconds = float(video_info['format']['duration'])
 
     print('Checking for timestamps file')
-    # todo: change to just .json
-    with open(video_path.with_suffix('.ko.json')) as timestamps_file:
+    with open(subtitle_path.with_suffix('.json')) as timestamps_file:
         timestamps = json.load(timestamps_file)
         print('Loaded timestamps file')
     # look for subtitle file by name
