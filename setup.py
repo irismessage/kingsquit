@@ -1,5 +1,5 @@
 import setuptools
-import main as kingsquit
+import kingsquit
 
 
 with open('README.md', 'r', encoding='utf-8') as readme_file:
@@ -15,10 +15,10 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/JMcB17/auto_timelapse_script',
-    py_modules=['main'],
+    packages=setuptools.find_packages(),
     entry_points={
         'console_scripts': [
-            'kingsquit=main:main'
+            'kingsquit=kingsquit:main'
         ]
     },
     classifiers=[
@@ -36,4 +36,3 @@ setuptools.setup(
         'cchardet',
     ]
 )
-

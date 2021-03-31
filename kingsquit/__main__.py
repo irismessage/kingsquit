@@ -1,0 +1,3 @@
+import kingsquit
+
+kingsquit.main()
