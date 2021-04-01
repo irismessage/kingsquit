@@ -20,3 +20,7 @@ Then all you need to do is type or paste a youtube url. After that the program w
 Finally, once the program is done downloading and processing, you can watch/upload the resulting video! Or run again on the same video, for a different random result.
 
 The program is designed so you can resume from where you were, if you stop after downloading. This makes it easier to re-run on the same video because you can delete the produced components and video, but not the downloaded video.
+
+## donate
+~~buY mE a COFfeE~~    
+To donate please DM me on discord JMcB#7918 and we can arrange for you to trade me coins on old school runescape.
