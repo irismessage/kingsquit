@@ -141,7 +141,45 @@ def shuffle_clips(video_folder: Path, jump_chance: float = 0.3):
     return clips_shuffled
 
 
-def reform_shuffled_clips(video_path: Path, timestamps: tl_type, shuffled_clips: list[Path]):
+def reform_one_clip(video_path: Path, timestamp: t_type, components: list[tuple[Path, float, float]]):
+    """Take snippets from a few clips and combine them into one.
+
+    Args:
+        video_path -- path to the video to get the folder paths from
+        timestamp -- timestamp of the clip we're making, used to pick the destination file name
+        components -- a list of tuples, each containing clip path, start time, and end time
+    Returns nothing.
+    """
+    video_folder = video_path.with_suffix('')
+    components_folder = video_folder / 'audio-components'
+    shuffled_clips_folder = video_folder / 'audio-shuffled'
+    components_folder.mkdir(exist_ok=True)
+
+    concat_file_path = components_folder / 'concat.txt'
+    concat_list = []
+    for component in components:
+        if not (component[1] or component[2]):
+            out_path = components_folder / f'{component[1]}d{component[2] - component[1]}.mp3'
+            stream = ffmpeg.input(str(component[0]), ss=component[1], to=component[2])
+            stream = ffmpeg.output(stream, str(out_path))
+            stream.run()
+
+            concat_new_path = out_path
+        else:
+            concat_new_path = component[0]
+        concat_new_str = str(concat_new_path.resolve()).replace('\\', '\\\\')
+        concat_list.append(f"file '{concat_new_str}'")
+
+    with open(concat_file_path, 'w') as concat_file:
+        concat_file.writelines(concat_list)
+
+    out_path = shuffled_clips_folder / f'{timestamp[0]}d{timestamp[1] - timestamp[0]}.mp3'
+    stream = ffmpeg.input(str(concat_file_path), format='concat', safe=0)
+    stream = ffmpeg.output(str(out_path))
+    stream.run()
+
+
+def reform_shuffled_clips(video_path: Path, timestamps: tl_type, shuffled_clips: list[Path]) -> Path:
     """Cut and join shuffled clips to match the timestamps again.
 
     Args:
@@ -151,8 +189,29 @@ def reform_shuffled_clips(video_path: Path, timestamps: tl_type, shuffled_clips:
     Returns the path to the folder of shuffled and reformed clips.
     """
     # todo: implement
-    video_folder = videos_folder.with_suffix('')
+    video_folder = video_path.with_suffix('')
     shuffled_clips_folder = video_folder / 'audio-shuffled'
+
+    cursor_file = 0
+    cursor_time = 0.0
+    for t in timestamps:
+        t_duration = t[1] - t[0]
+        # cumulative
+        cum_duration = 0.0
+        reformed_clip_content = []
+        while cum_duration < t_duration:
+            clip_to_add = shuffled_clips[cursor_file]
+            clip_duration = float(clip_to_add.stem[clip_to_add.stem.index('d') + 1:])
+
+            reformed_clip_content.append((clip_to_add, cursor_time))
+            cursor_file += 1
+
+            if cursor_time != 0.0:
+                clip_duration -= cursor_time
+                cursor_time = 0.0
+            cum_duration += clip_duration
+
+        end = cum_duration - t_duration
 
     return shuffled_clips_folder
 
@@ -225,6 +284,8 @@ def main():
     # video_name = input('Video name: ')
     # video_path = videos_folder / video_name
     video_path, subtitle_path = downloader.main(str(videos_folder))
+    if not subtitle_path:
+        return False
 
     if not video_path.is_file():
         print("Video doesn't exist")

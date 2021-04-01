@@ -92,6 +92,7 @@ def process(hook: dict):
         progress_hook_return = (video_path, subtitle_path)
     else:
         progress_hook_return = (video_path, None)
+        print('Unable to convert subtitles! (speech-to-text auto subtitling coming soon?)')
     return progress_hook_return
 
 
