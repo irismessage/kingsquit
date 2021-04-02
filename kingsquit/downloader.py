@@ -122,9 +122,10 @@ def main(dest: str = ''):
         with youtube_yl.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
     except youtube_yl.DownloadError:
-        choice = input('Invalid url, run a search? (y/N/youtube-dl search identifier)').casefold()
+        # todo: stop youtube dl from logging the error message
+        choice = input('Invalid url, run a search? (y/N/youtube-dl search identifier)\n').casefold()
         if not choice or choice == 'n':
-            return False
+            return None, None
         elif choice == 'y':
             ydl_opts['default_search'] = 'auto_warning'
         else:
