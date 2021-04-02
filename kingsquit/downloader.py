@@ -28,7 +28,7 @@ def find_subtitle_file(video_path: Path, sub_extension: str = '.ttml'):
                 stem_without_lang = file.stem
 
             if stem_without_lang == video_path.stem:
-                file.rename(file.with_stem(stem_without_lang))
+                file = file.rename(file.with_stem(stem_without_lang))
                 return file
 
     return None
@@ -119,10 +119,14 @@ def main(dest: str = ''):
     if subtitleslangs:
         ydl_opts['subtitleslangs'] = [subtitleslangs]
     try:
+        # todo: catch errors and skip this step then carry on if file already exists
         with youtube_yl.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
     except youtube_yl.DownloadError:
+        # todo: remove this debugging line
+        raise
         # todo: stop youtube dl from logging the error message
+        # todo: only catch the invalid url error
         choice = input('Invalid url, run a search? (y/N/youtube-dl search identifier)\n').casefold()
         if not choice or choice == 'n':
             return None, None
