@@ -119,24 +119,25 @@ def main(dest: str = ''):
     if subtitleslangs:
         ydl_opts['subtitleslangs'] = [subtitleslangs]
     try:
-        # todo: catch errors and skip this step then carry on if file already exists
         with youtube_yl.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
-    except youtube_yl.DownloadError:
-        # todo: remove this debugging line
-        raise
-        # todo: stop youtube dl from logging the error message
-        # todo: only catch the invalid url error
-        choice = input('Invalid url, run a search? (y/N/youtube-dl search identifier)\n').casefold()
-        if not choice or choice == 'n':
-            return None, None
-        elif choice == 'y':
-            ydl_opts['default_search'] = 'auto_warning'
-        else:
-            ydl_opts['default_search'] = choice
+    except youtube_yl.DownloadError as err:
+        if err.exc_info[0] == FileExistsError:
+            pass
+        elif err.exc_info[0] == youtube_yl.utils.ExtractorError:
+            # todo: stop youtube dl from logging the error message
+            choice = input('Invalid url, run a search? (y/N/youtube-dl search identifier)\n').casefold()
+            if not choice or choice == 'n':
+                return None, None
+            elif choice == 'y':
+                ydl_opts['default_search'] = 'auto_warning'
+            else:
+                ydl_opts['default_search'] = choice
 
-        with youtube_yl.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
+            with youtube_yl.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([url])
+        else:
+            raise
 
     while progress_hook_return == (None, None):
         pass
