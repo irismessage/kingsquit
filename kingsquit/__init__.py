@@ -15,6 +15,7 @@ import downloader
 # make the same dialogue make the same sound - record mappings, add text back to timestamps file
 # gold coin
 # todo: add argparse
+# todo: give all relevant folders as arguments instead of getting them from video path - better code
 __version__ = '0.1.0'
 
 
@@ -67,7 +68,8 @@ class ClipRipper:
         # no need to streamcopy because it's fast anyway
         # also skip clips already ripped
         stream = ffmpeg.output(stream, str(clip_path), t=duration).global_args('-n')
-        ffmpeg.run(stream)
+        ffmpeg.run(stream, quiet=True)
+        # print('█', end='')
 
 
 def rip_all_audio_clips(video_path: Path, timestamps: tl_type, dest='audio-clips') -> Path:
@@ -112,18 +114,19 @@ def rip_intermediate_audio_clips(video_path: Path, timestamps: tl_type, video_du
     if timestamps[-1][1] <= video_duration:
         intermediate_timestamps.append((timestamps[-1][1], video_duration))
 
-    return rip_all_audio_clips(video_path, intermediate_timestamps, dest='intermediate-audio-clips')
+    return rip_all_audio_clips(video_path, intermediate_timestamps, dest='audio-clips-intermediate')
 
 
-def shuffle_clips(video_folder: Path, jump_chance: float = 0.3):
+def shuffle_clips(video_path: Path, jump_chance: float = 0.3):
     """Shuffle the files in the folder in chunks.
 
     Args:
-        video_folder  -- path to the base folder containing the audio-clips folder
+        video_folder  -- path to the video, to find the audio-clips folder
         jump_chance -- chance that audio will jump to a new random clip instead of continuing to the next clip.
                        therefore, the size of each chunk on average should the number of clips / jump chance
     Returns a last of clips paths, shuffled.
     """
+    video_folder = video_path.with_suffix('')
     clips_folder = video_folder / 'audio-clips'
     clips = list(clips_folder.iterdir())
     clips.sort()
@@ -155,29 +158,31 @@ def reform_one_clip(video_path: Path, timestamp: t_type, components: list[tuple[
     components_folder = video_folder / 'audio-components'
     shuffled_clips_folder = video_folder / 'audio-shuffled'
     components_folder.mkdir(exist_ok=True)
+    shuffled_clips_folder.mkdir(exist_ok=True)
 
     concat_file_path = components_folder / 'concat.txt'
     concat_list = []
     for component in components:
-        if not (component[1] or component[2]):
-            out_path = components_folder / f'{component[1]}d{component[2] - component[1]}.mp3'
+        if component[1] or component[2]:
+            out_name = f'{component[1]}d{component[2] - component[1]}.mp3'
+            out_path = components_folder / out_name
             stream = ffmpeg.input(str(component[0]), ss=component[1], to=component[2])
             stream = ffmpeg.output(stream, str(out_path))
-            stream.run()
+            ffmpeg.run(stream, quiet=True)
 
             concat_new_path = out_path
         else:
             concat_new_path = component[0]
         concat_new_str = str(concat_new_path.resolve()).replace('\\', '\\\\')
-        concat_list.append(f"file '{concat_new_str}'")
+        concat_list.append(f"file '{concat_new_str}'\n")
 
     with open(concat_file_path, 'w') as concat_file:
         concat_file.writelines(concat_list)
 
-    out_path = shuffled_clips_folder / f'{timestamp[0]}d{timestamp[1] - timestamp[0]}.mp3'
+    out_path = shuffled_clips_folder / f'{timestamp[0]}d{Decimal(str(timestamp[1])) - Decimal(str(timestamp[0]))}.mp3'
     stream = ffmpeg.input(str(concat_file_path), format='concat', safe=0)
     stream = ffmpeg.output(stream, str(out_path))
-    stream.run()
+    ffmpeg.run(stream, quiet=True)
 
 
 def reform_shuffled_clips(video_path: Path, timestamps: tl_type, shuffled_clips: list[Path]) -> Path:
@@ -203,18 +208,20 @@ def reform_shuffled_clips(video_path: Path, timestamps: tl_type, shuffled_clips:
             clip_to_add = shuffled_clips[cursor_file]
             cursor_file += 1
 
+            # clip_duration = Decimal(clip_to_add.stem[clip_to_add.stem.index('d') + 1:])
             clip_duration = float(clip_to_add.stem[clip_to_add.stem.index('d') + 1:])
 
             if cursor_time != 0.0:
                 clip_duration -= cursor_time
-                cursor_time = 0.0
-                clip_end = 0.0
-            else:
                 clip_end = clip_duration
+                cursor_time = 0.0
+            else:
+                clip_end = 0.0
+            if not cum_duration < t_duration:
+                cursor_time = cum_duration - t_duration
+                clip_end = cursor_time
             reformed_clip_content.append((clip_to_add, cursor_time, clip_end))
             cum_duration += clip_duration
-
-        cursor_time = cum_duration - t_duration
 
         reform_one_clip(video_path, t, reformed_clip_content)
 
@@ -249,7 +256,7 @@ def generate_new_video(video_path: Path):
     ffmpeg.run(stream)
 
     # combine new audio with video to create the new video
-    final_result_path = video_path.with_stem('(SHUFFLED)' + video_path.stem)
+    final_result_path = video_path.with_stem('(SHUFFLED) ' + video_path.stem)
 
     video_stream = ffmpeg.input(str(video_path)).video
     audio_stream = ffmpeg.input(str(concat_output))

@@ -112,17 +112,24 @@ def main(dest: str = ''):
         'writeautomaticsub': True,
         'subtitlesformat': 'ttml',
         'progress_hooks': [process],
+        # 'nooverwrites': True,
+        # 'ignoreerrors': True,
     }
 
-    url = input('Youtube url: ')
-    subtitleslangs = input('Subtitle language to download (type nothing for any): ')
-    if subtitleslangs:
-        ydl_opts['subtitleslangs'] = [subtitleslangs]
+    # todo: remove this debug code
+    # url = input('Youtube url: ')
+    # subtitleslang = input('Subtitle language to download (type nothing for any): ')
+    url = 'https://www.youtube.com/watch?v=vDUYLDtC5Qw'
+    subtitleslang = 'ko'
+    if subtitleslang:
+        ydl_opts['subtitleslangs'] = [subtitleslang]
     try:
         with youtube_yl.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
     except youtube_yl.DownloadError as err:
         if err.exc_info[0] == FileExistsError:
+            # todo: fix
+            print('File already downloaded, continuing..')
             pass
         elif err.exc_info[0] == youtube_yl.utils.ExtractorError:
             # todo: stop youtube dl from logging the error message
@@ -139,6 +146,7 @@ def main(dest: str = ''):
         else:
             raise
 
+    print('Waiting for subtitles to be processed..')
     while progress_hook_return == (None, None):
         pass
     video_path, subtitle_path = progress_hook_return
