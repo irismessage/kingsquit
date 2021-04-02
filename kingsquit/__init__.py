@@ -14,6 +14,7 @@ import downloader
 # polish for general release
 # make the same dialogue make the same sound - record mappings, add text back to timestamps file
 # gold coin
+# todo: add argparse
 __version__ = '0.1.0'
 
 

@@ -50,7 +50,6 @@ def convert_subs(subtitle_path: Path):
         subtitle_path -- path of subtitles to convert
     Return True if successful, False otherwise.
     """
-    # todo: handle invalid subtitles
     with open(subtitle_path, encoding='utf-8') as sub_file:
         subtitles = sub_file.read()
     subtitle_reader_class = pycaption.detect_format(subtitles)
@@ -66,7 +65,7 @@ def convert_subs(subtitle_path: Path):
     return True
 
 
-progress_hook_return = None
+progress_hook_return = (None, None)
 
 
 def process(hook: dict):
@@ -119,13 +118,25 @@ def main(dest: str = ''):
     subtitleslangs = input('Subtitle language to download (type nothing for any): ')
     if subtitleslangs:
         ydl_opts['subtitleslangs'] = [subtitleslangs]
-    with youtube_yl.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url])
+    try:
+        with youtube_yl.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+    except youtube_yl.DownloadError:
+        choice = input('Invalid url, run a search? (y/N/youtube-dl search identifier)').casefold()
+        if not choice or choice == 'n':
+            return False
+        elif choice == 'y':
+            ydl_opts['default_search'] = 'auto_warning'
+        else:
+            ydl_opts['default_search'] = choice
 
-    while progress_hook_return is None:
+        with youtube_yl.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+
+    while progress_hook_return == (None, None):
         pass
     video_path, subtitle_path = progress_hook_return
-    progress_hook_return = None
+    progress_hook_return = (None, None)
     return video_path, subtitle_path
 
 
