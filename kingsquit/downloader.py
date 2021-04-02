@@ -76,7 +76,7 @@ def process(hook: dict):
     and run convert_subs on it.
     """
     global progress_hook_return
-    # would be nice if youtube_dl gave you all the downloaded files including the progress hoook
+    # would be nice if youtube_dl gave you all the downloaded files including the progress hook
     # and if it let you get the return value of the progress hook
     if hook['status'] != 'finished':
         return

@@ -175,7 +175,7 @@ def reform_one_clip(video_path: Path, timestamp: t_type, components: list[tuple[
 
     out_path = shuffled_clips_folder / f'{timestamp[0]}d{timestamp[1] - timestamp[0]}.mp3'
     stream = ffmpeg.input(str(concat_file_path), format='concat', safe=0)
-    stream = ffmpeg.output(str(out_path))
+    stream = ffmpeg.output(stream, str(out_path))
     stream.run()
 
 
@@ -188,7 +188,6 @@ def reform_shuffled_clips(video_path: Path, timestamps: tl_type, shuffled_clips:
         shuffled_clips -- ordered list of clips paths
     Returns the path to the folder of shuffled and reformed clips.
     """
-    # todo: implement
     video_folder = video_path.with_suffix('')
     shuffled_clips_folder = video_folder / 'audio-shuffled'
 
@@ -201,17 +200,22 @@ def reform_shuffled_clips(video_path: Path, timestamps: tl_type, shuffled_clips:
         reformed_clip_content = []
         while cum_duration < t_duration:
             clip_to_add = shuffled_clips[cursor_file]
-            clip_duration = float(clip_to_add.stem[clip_to_add.stem.index('d') + 1:])
-
-            reformed_clip_content.append((clip_to_add, cursor_time))
             cursor_file += 1
+
+            clip_duration = float(clip_to_add.stem[clip_to_add.stem.index('d') + 1:])
 
             if cursor_time != 0.0:
                 clip_duration -= cursor_time
                 cursor_time = 0.0
+                clip_end = 0.0
+            else:
+                clip_end = clip_duration
+            reformed_clip_content.append((clip_to_add, cursor_time, clip_end))
             cum_duration += clip_duration
 
-        end = cum_duration - t_duration
+        cursor_time = cum_duration - t_duration
+
+        reform_one_clip(video_path, t, reformed_clip_content)
 
     return shuffled_clips_folder
 

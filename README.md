@@ -23,4 +23,4 @@ The program is designed so you can resume from where you were, if you stop after
 
 ## donate
 ~~buY mE a COFfeE~~    
-To donate please DM me on discord JMcB#7918 and we can arrange for you to trade me coins on old school runescape.
+To donate please DM me on discord JMcB#7918, and we can arrange for you to trade me coins on old school runescape.
