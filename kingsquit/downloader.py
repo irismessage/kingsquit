@@ -117,6 +117,7 @@ def main(dest: str = ''):
     }
 
     # todo: remove this debug code
+    # todo: put the subtitle etc. files in the video folder so as to not clog the main folder
     # url = input('Youtube url: ')
     # subtitleslang = input('Subtitle language to download (type nothing for any): ')
     url = 'https://www.youtube.com/watch?v=vDUYLDtC5Qw'

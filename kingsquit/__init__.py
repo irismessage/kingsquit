@@ -16,6 +16,7 @@ import downloader
 # gold coin
 # todo: add argparse
 # todo: give all relevant folders as arguments instead of getting them from video path - better code
+# todo: add more progress bars - ripping clips and reforming shuffled clips
 __version__ = '0.1.0'
 
 
@@ -185,6 +186,7 @@ def reform_one_clip(video_path: Path, timestamp: t_type, components: list[tuple[
     ffmpeg.run(stream, quiet=True)
 
 
+# todo: fix
 def reform_shuffled_clips(video_path: Path, timestamps: tl_type, shuffled_clips: list[Path]) -> Path:
     """Cut and join shuffled clips to match the timestamps again.
 
@@ -200,6 +202,7 @@ def reform_shuffled_clips(video_path: Path, timestamps: tl_type, shuffled_clips:
     cursor_file = 0
     cursor_time = 0.0
     for t in timestamps:
+        # todo: fix representation errors
         t_duration = t[1] - t[0]
         # cumulative
         cum_duration = 0.0
@@ -210,6 +213,7 @@ def reform_shuffled_clips(video_path: Path, timestamps: tl_type, shuffled_clips:
 
             # clip_duration = Decimal(clip_to_add.stem[clip_to_add.stem.index('d') + 1:])
             clip_duration = float(clip_to_add.stem[clip_to_add.stem.index('d') + 1:])
+            cum_duration += clip_duration
 
             if cursor_time != 0.0:
                 clip_duration -= cursor_time
@@ -217,12 +221,13 @@ def reform_shuffled_clips(video_path: Path, timestamps: tl_type, shuffled_clips:
                 cursor_time = 0.0
             else:
                 clip_end = 0.0
+            # todo: improve this so it doesn't check once in the while statement and once here
             if not cum_duration < t_duration:
                 cursor_time = cum_duration - t_duration
                 clip_end = cursor_time
             reformed_clip_content.append((clip_to_add, cursor_time, clip_end))
-            cum_duration += clip_duration
 
+        print(reformed_clip_content)
         reform_one_clip(video_path, t, reformed_clip_content)
 
     return shuffled_clips_folder
