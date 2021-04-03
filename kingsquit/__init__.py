@@ -269,11 +269,11 @@ def generate_new_video(video_path: Path):
     Ran after the clips have been ripped, shuffled, and reforms. Concatenates the clips with the concat demuxer,
     then takes that and the original video to make a new video file.
     """
-    video_folder = videos_folder.with_suffix('')
+    video_folder = video_path.with_suffix('')
     shuffled_clips_folder = video_folder / 'audio-shuffled'
     intermediate_clips_folder = video_folder / 'audio-clips-intermediate'
     shuffled_clips = list(shuffled_clips_folder.iterdir()) + list(intermediate_clips_folder.iterdir())
-    shuffled_clips.sort()
+    shuffled_clips.sort(key=lambda p: p.name)
 
     # concatenate shuffled audio back into a single audio track
     concat_folder = video_folder / 'audio-concat'
@@ -282,7 +282,7 @@ def generate_new_video(video_path: Path):
     concat_output = concat_folder / 'audio.mp3'
 
     with open(concat_file, 'w') as concat_file:
-        concat_file.writelines([f"file '{f}'" for f in shuffled_clips])
+        concat_file.writelines([f"file '{f}'\n" for f in shuffled_clips])
     stream = ffmpeg.input(str(concat_file), format='concat', safe=0)
     stream = ffmpeg.output(stream, str(concat_output), **{'c:a': 'copy'})
     ffmpeg.run(stream)
