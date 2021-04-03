@@ -66,9 +66,8 @@ class ClipRipper:
         t_duration = Decimal(str(t[1])) - Decimal(str(t[0]))
         clip_path = self.clips_folder / f'{t[0]}d{t_duration}.mp3'
         stream = ffmpeg.input(str(self.video_path), ss=t[0])
-        # no need to streamcopy because it's fast anyway
         # also skip clips already ripped
-        stream = ffmpeg.output(stream, str(clip_path), t=t_duration).global_args('-n')
+        stream = ffmpeg.output(stream, str(clip_path), t=t_duration, **{'c:v': 'copy', 'c:a': 'copy'}).global_args('-n')
         ffmpeg.run(stream, quiet=True)
         # print('█', end='')
 
@@ -165,12 +164,13 @@ def reform_one_clip(video_path: Path, timestamp: t_type, components: list[tuple[
     concat_list = []
     for component in components:
         if component[1] or component[2]:
-            component_duration = Decimal(str(component[1])) - Decimal(str(component[0]))
+            component_duration = Decimal(str(component[2])) - Decimal(str(component[1]))
             out_name = f'{component[1]}d{component_duration}.mp3'
             out_path = components_folder / out_name
             stream = ffmpeg.input(str(component[0]), ss=component[1], to=component[2])
             stream = ffmpeg.output(stream, str(out_path), **{'c:v': 'copy', 'c:a': 'copy'})
-            ffmpeg.run(stream, quiet=True)
+            # ffmpeg.run(stream, quiet=True)
+            ffmpeg.run(stream)
 
             concat_new_path = out_path
         else:
@@ -185,7 +185,8 @@ def reform_one_clip(video_path: Path, timestamp: t_type, components: list[tuple[
     out_path = shuffled_clips_folder / f'{timestamp[0]}d{timestamp_duration}.mp3'
     stream = ffmpeg.input(str(concat_file_path), format='concat', safe=0)
     stream = ffmpeg.output(stream, str(out_path), **{'c:v': 'copy', 'c:a': 'copy'})
-    ffmpeg.run(stream, quiet=True)
+    # ffmpeg.run(stream, quiet=True)
+    ffmpeg.run(stream)
 
 
 # todo: fix
@@ -212,8 +213,8 @@ def reform_shuffled_clips(video_path: Path, timestamps: tl_type, shuffled_clips:
             clip_duration = Decimal(clip_to_add.stem[clip_to_add.stem.index('d') + 1:])
 
             clip_start = cursor_time
-            clip_duration -= clip_start
-            if clip_duration > time_to_fill:
+            clip_duration_from_cursor = clip_duration - clip_start
+            if clip_duration_from_cursor > time_to_fill:
                 clip_end = clip_start + time_to_fill
                 cursor_time = clip_end
             else:
@@ -225,6 +226,7 @@ def reform_shuffled_clips(video_path: Path, timestamps: tl_type, shuffled_clips:
                     clip_end = clip_duration
 
             reformed_clip_content.append((clip_to_add, clip_start, clip_end))
+            time_to_fill -= clip_duration
 
         print(reformed_clip_content)
         reform_one_clip(video_path, t, reformed_clip_content)
@@ -264,7 +266,7 @@ def generate_new_video(video_path: Path):
 
     video_stream = ffmpeg.input(str(video_path)).video
     audio_stream = ffmpeg.input(str(concat_output))
-    stream = ffmpeg.output(video_stream, audio_stream, str(final_result_path))
+    stream = ffmpeg.output(video_stream, audio_stream, str(final_result_path), **{'c:v': 'copy', 'c:a': 'copy'})
     ffmpeg.run(stream)
 
 
