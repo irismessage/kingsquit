@@ -201,32 +201,30 @@ def reform_shuffled_clips(video_path: Path, timestamps: tl_type, shuffled_clips:
     video_folder = video_path.with_suffix('')
     shuffled_clips_folder = video_folder / 'audio-shuffled'
 
-    cursor_file = 0
+    cursor_file_index = 0
     cursor_time = Decimal('0.0')
     for t in timestamps:
         t_duration = Decimal(str(t[1])) - Decimal(str(t[0]))
-        # cumulative
-        cum_duration = Decimal('0.0')
+        time_to_fill = t_duration
         reformed_clip_content = []
-        while cum_duration < t_duration:
-            clip_to_add = shuffled_clips[cursor_file]
-            cursor_file += 1
-
-            # clip_duration = Decimal(clip_to_add.stem[clip_to_add.stem.index('d') + 1:])
+        while time_to_fill > 0:
+            clip_to_add = shuffled_clips[cursor_file_index]
             clip_duration = Decimal(clip_to_add.stem[clip_to_add.stem.index('d') + 1:])
-            cum_duration += clip_duration
 
-            if cursor_time != 0.0:
-                clip_duration -= cursor_time
-                clip_end = clip_duration
-                cursor_time = 0.0
+            clip_start = cursor_time
+            clip_duration -= clip_start
+            if clip_duration > time_to_fill:
+                clip_end = clip_start + time_to_fill
+                cursor_time = clip_end
             else:
-                clip_end = 0.0
-            # todo: improve this so it doesn't check once in the while statement and once here
-            if not cum_duration < t_duration:
-                cursor_time = cum_duration - t_duration
-                clip_end = cursor_time
-            reformed_clip_content.append((clip_to_add, cursor_time, clip_end))
+                cursor_time = Decimal('0.0')
+                cursor_file_index += 1
+                if not clip_start:
+                    clip_end = 0.0
+                else:
+                    clip_end = clip_duration
+
+            reformed_clip_content.append((clip_to_add, clip_start, clip_end))
 
         print(reformed_clip_content)
         reform_one_clip(video_path, t, reformed_clip_content)
