@@ -28,7 +28,7 @@ def find_subtitle_file(video_path: Path, sub_extension: str = '.ttml'):
                 stem_without_lang = file.stem
 
             if stem_without_lang == video_path.stem:
-                file = file.rename(file.with_stem(stem_without_lang))
+                file = file.replace(file.with_stem(stem_without_lang))
                 return file
 
     return None
@@ -65,34 +65,40 @@ def convert_subs(subtitle_path: Path):
     return True
 
 
-progress_hook_return = (None, None)
+progress_hook = {}
 
 
-def process(hook: dict):
+def extract_progress_hook(hook: dict):
+    """Take the progress hook dict from ytdl and make it a global variable.
+
+    A bit of a hack but the best way I can think of to get it right now.
+    """
+    global progress_hook
+    progress_hook = hook
+
+
+def process_progress_hook(hook: dict):
     """Process video once it's done downloading.
 
     Progress hook for ytdl. Once the download status is 'finished', get the subtitle path from the video path,
     and run convert_subs on it.
     """
-    global progress_hook_return
     # would be nice if youtube_dl gave you all the downloaded files including the progress hook
     # and if it let you get the return value of the progress hook
     if hook['status'] != 'finished':
-        return
+        return None, None
 
     video_path = Path(hook['filename'])
     subtitle_path = find_subtitle_file(video_path)
     if not subtitle_path:
         print('Subtitle file not found! (speech-to-text auto subtitling coming soon?)')
-        progress_hook_return = (video_path, None)
-        return progress_hook_return
+        return video_path, None
 
     if convert_subs(subtitle_path):
-        progress_hook_return = (video_path, subtitle_path)
+        return video_path, subtitle_path
     else:
-        progress_hook_return = (video_path, None)
         print('Unable to convert subtitles! (speech-to-text auto subtitling coming soon?)')
-    return progress_hook_return
+        return video_path, None
 
 
 def main(dest: str = ''):
@@ -104,14 +110,15 @@ def main(dest: str = ''):
                 appended to the start of the youtube dl default out template.
     Returns nothing.
     """
-    global progress_hook_return
+    global progress_hook
+
     ydl_opts = {
         'outtmpl': f'{dest}/{youtube_yl.DEFAULT_OUTTMPL}',
         'format': 'mp4',
         'writesubtitles': True,
         'writeautomaticsub': True,
         'subtitlesformat': 'ttml',
-        'progress_hooks': [process],
+        'progress_hooks': [extract_progress_hook],
         # 'nooverwrites': True,
         # 'ignoreerrors': True,
     }
@@ -128,11 +135,7 @@ def main(dest: str = ''):
         with youtube_yl.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
     except youtube_yl.DownloadError as err:
-        if err.exc_info[0] == FileExistsError:
-            # todo: fix
-            print('File already downloaded, continuing..')
-            pass
-        elif err.exc_info[0] == youtube_yl.utils.ExtractorError:
+        if err.exc_info[0] == youtube_yl.utils.ExtractorError:
             # todo: stop youtube dl from logging the error message
             choice = input('Invalid url, run a search? (y/N/youtube-dl search identifier)\n').casefold()
             if not choice or choice == 'n':
@@ -147,12 +150,14 @@ def main(dest: str = ''):
         else:
             raise
 
-    print('Waiting for subtitles to be processed..')
-    while progress_hook_return == (None, None):
-        pass
-    video_path, subtitle_path = progress_hook_return
-    progress_hook_return = (None, None)
-    return video_path, subtitle_path
+    print('Processing subtitles')
+    while True:
+        if not progress_hook:
+            continue
+        video_path, subtitle_path = process_progress_hook(progress_hook)
+        if video_path:
+            return video_path, subtitle_path
+        progress_hook = None
 
 
 if __name__ == '__main__':

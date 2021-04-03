@@ -283,7 +283,7 @@ def main():
         print("Video doesn't exist")
         return False
     video_folder = video_path.with_suffix('')
-    video_folder.mkdir()
+    video_folder.mkdir(exist_ok=True)
 
     video_info = ffmpeg.probe(str(video_path))
     video_length_seconds = float(video_info['format']['duration'])
