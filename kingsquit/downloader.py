@@ -124,12 +124,11 @@ def main(dest: str = ''):
         # 'ignoreerrors': True,
     }
 
-    # todo: remove this debug code
     # todo: put the subtitle etc. files in the video folder so as to not clog the main folder
-    # url = input('Youtube url: ')
-    # subtitleslang = input('Subtitle language to download (type nothing for any): ')
-    url = 'https://www.youtube.com/watch?v=vDUYLDtC5Qw'
-    subtitleslang = 'ko'
+    url = input('Youtube url: ')
+    subtitleslang = input('Subtitle language to download (type nothing for any): ')
+    # url = 'https://www.youtube.com/watch?v=vDUYLDtC5Qw'
+    # subtitleslang = 'ko'
     if subtitleslang:
         ydl_opts['subtitleslangs'] = [subtitleslang]
     try:

@@ -1,6 +1,7 @@
 """Main body of the code for shuffling dialogue in videos, including the main function."""
 
 import json
+import argparse
 import random
 from decimal import Decimal
 from pathlib import Path
@@ -8,14 +9,15 @@ from concurrent.futures import ThreadPoolExecutor
 
 # note: you must install ffmpeg executable
 import ffmpeg
-import downloader
+import kingsquit.downloader
 
 
 # polish for general release
 # make the same dialogue make the same sound - record mappings, add text back to timestamps file
 # gold coin
-# todo: add argparse
+# todo: add more argparse
 # todo: give all relevant folders as arguments instead of getting them from video path - better code
+# maybe move the video processing code to its own file like downloader.py and just have this be the main stuff
 __version__ = '0.1.0'
 
 
@@ -324,11 +326,19 @@ def generate_new_video(video_path: Path):
     ffmpeg.run(stream)
 
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--version', action='version', version=__version__)
+    return parser.parse_args()
+
+
 def main():
     """Run the program."""
     # if starts with http or https, use ydl to download video and subtitles
     # video_name = input('Video name: ')
     # video_path = videos_folder / video_name
+    parse_args()
+
     video_path, subtitle_path = downloader.main(str(videos_folder))
     if not subtitle_path:
         return False
