@@ -44,14 +44,28 @@ def verify_timestamp_pairs(timestamps: tl_type, maximum: float) -> bool:
 
 
 class ProgressBarRunner:
-    def __init__(self, total):
+    """Class for a simple progress bar."""
+
+    def __init__(self, total, progress_divisor=10):
+        """Initialise an instance.
+
+        Args:
+            total -- total jobs that need doing
+            progress_divisor -- a new progress symbol will be printed about this many times
+        """
         self.total = total
 
-        self.progress_bar_interval = self.total // 10
+        self.progress_bar_interval = self.total // progress_divisor
         self.last_log = 0
         self.done = 0
 
     def progress(self):
+        """Increment self.done, and if it's significant, print something.
+
+        If done is 1 it means we just started so it prints a start message and one ascii block.
+        If done is more than the last log time add the interval, print one ascii block.
+        If done is equal to total, print a finished message.
+        """
         self.done += 1
 
         if self.done == 1:
@@ -68,6 +82,7 @@ class ClipRipper(ProgressBarRunner):
     """Class for storing the video path and output path for ripping clips."""
 
     def __init__(self, video_path, clips_folder, total):
+        """Save the video path and clips folder to the instance."""
         self.video_path = video_path
         self.clips_folder = clips_folder
 
@@ -260,6 +275,16 @@ def reform_shuffled_clips(video_path: Path, timestamps: tl_type, shuffled_clips:
     return shuffled_clips_folder
 
 
+def get_final_result_path(video_path: Path) -> Path:
+    """Get a new name for the output video that hasn't been used before by adding a number."""
+    final_result_path = video_path.with_stem('(SHUFFLED) ' + video_path.stem)
+    number = 2
+    while final_result_path.is_file():
+        final_result_path = video_path.with_stem(f'(SHUFFLED-{number}) {video_path.stem}')
+        number += 1
+    return final_result_path
+
+
 def generate_new_video(video_path: Path):
     """Reform shuffled clips into a single audio track, and join it back to the video.
 
@@ -287,10 +312,10 @@ def generate_new_video(video_path: Path):
         concat_file.writelines([f"file '{f}'\n" for f in shuffled_clip_paths_escaped])
     stream = ffmpeg.input(str(concat_file_path), format='concat', safe=0)
     stream = ffmpeg.output(stream, str(concat_output), **{'c:a': 'copy'})
-    ffmpeg.run(stream)
+    ffmpeg.run(stream, overwrite_output=True)
 
     # combine new audio with video to create the new video
-    final_result_path = video_path.with_stem('(SHUFFLED) ' + video_path.stem)
+    final_result_path = get_final_result_path(video_path)
 
     video_stream = ffmpeg.input(str(video_path)).video
     audio_stream = ffmpeg.input(str(concat_output))

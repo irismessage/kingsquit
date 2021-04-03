@@ -1,3 +1,9 @@
+"""Build for pypi distribution.
+
+Usage: python -m setup.py sdist bdist_wheel
+Upload with twine
+"""
+
 import setuptools
 import kingsquit
 

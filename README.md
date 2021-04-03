@@ -19,7 +19,13 @@ If you installed with pip or git, just run `kingsquit` or `python -m kingsquit` 
 Then all you need to do is type or paste a youtube url. After that the program will download and shuffle the video in the `kingsquit-videos` folder.    
 Finally, once the program is done downloading and processing, you can watch/upload the resulting video! Or run again on the same video, for a different random result.
 
-The program is designed so you can resume from where you were, if you stop after downloading. This makes it easier to re-run on the same video because you can delete the produced components and video, but not the downloaded video.
+The program is designed so you can resume from where you were, if you stop after/while downloading. This makes it easy to generate a new randomised video, you just have to re-run the program, not re-download the video. Existing randomised will not be overwritten, it will just make a new one.
+
+## coming soon, hopefully
+- [ ] Edit the marked areas to randomise using an audacity label track
+- [ ] Run on existing local files as well as urls
+- [ ] Try to automatically download subtitles
+- [ ] If automatically downloading subtitles failed, generate them with speech-to-text
 
 ## donate
 ~~buY mE a COFfeE~~    

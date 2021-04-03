@@ -105,7 +105,8 @@ def main(dest: str = ''):
     """Download the video to the destination folder, and process its subtitles.
 
     Args:
-        dest -- destination folder. Should be a string, not a path object, and must use / instead of \\.
+        dest -- destination folder.
+                must be a string, not a path object, and use forward slashes, not backslashes.
                 should also have no trailing slash.
                 appended to the start of the youtube dl default out template.
     Returns nothing.
