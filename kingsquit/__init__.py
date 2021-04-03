@@ -133,7 +133,9 @@ def rip_intermediate_audio_clips(video_path: Path, timestamps: tl_type, video_du
     intermediate_timestamps = []
     if timestamps[0][0] != 0.0:
         intermediate_timestamps.append((0.0, timestamps[0][0]))
-    intermediate_timestamps += [(timestamps[i][1], timestamps[i+1][0]) for i in range(len(timestamps)-1)]
+    for i in range(len(timestamps) - 1):
+        if timestamps[i][1] != timestamps[i+1][0]:
+            intermediate_timestamps.append((timestamps[i][1], timestamps[i+1][0]))
     if timestamps[-1][1] <= video_duration:
         intermediate_timestamps.append((timestamps[-1][1], video_duration))
 
@@ -191,7 +193,7 @@ def reform_one_clip(video_path: Path, timestamp: t_type, components: list[tuple[
             out_name = f'{component[1]}d{component_duration}.mp3'
             out_path = components_folder / out_name
             stream = ffmpeg.input(str(component[0]), ss=component[1])
-            stream = ffmpeg.output(stream, str(out_path), to=component[2], **{'c:a': 'copy'})
+            stream = ffmpeg.output(stream, str(out_path), to=component[2])
             ffmpeg.run(stream, quiet=True, overwrite_output=True)
 
             concat_new_path = out_path
@@ -203,6 +205,7 @@ def reform_one_clip(video_path: Path, timestamp: t_type, components: list[tuple[
     with open(concat_file_path, 'w') as concat_file:
         concat_file.writelines(concat_list)
 
+    # todo: fix bug where this will break when a clip is extremely short
     timestamp_duration = Decimal(str(timestamp[1])) - Decimal(str(timestamp[0]))
     out_path = shuffled_clips_folder / f'{timestamp[0]}d{timestamp_duration}.mp3'
     stream = ffmpeg.input(str(concat_file_path), format='concat', safe=0)
