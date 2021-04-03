@@ -16,7 +16,7 @@ import downloader
 # gold coin
 # todo: add argparse
 # todo: give all relevant folders as arguments instead of getting them from video path - better code
-# todo: add more progress bars - ripping clips and reforming shuffled clips
+# todo: add more progress bars - (ripping clips - done) and reforming shuffled clips
 __version__ = '0.1.0'
 
 
@@ -47,9 +47,21 @@ def verify_timestamp_pairs(timestamps: tl_type, maximum: float) -> bool:
 class ClipRipper:
     """Class for storing the video path and output path for ripping clips."""
 
-    def __init__(self, video_path, clips_folder):
+    def __init__(self, video_path, clips_folder, total):
         self.video_path = video_path
         self.clips_folder = clips_folder
+        self.total = total
+
+        self.progress_bar_interval = self.total // 10
+        self.last_log = 0
+        self.done = 0
+
+    def progress(self):
+        if self.done == self.total:
+            print('\nDone ripping clips!')
+        elif self.done >= self.last_log + self.progress_bar_interval:
+            print('█', end='')
+            self.last_log += self.progress_bar_interval
 
     def rip_audio_clip(self, t: t_type):
         """Take a snippet of audio from a video and save it to its own mp3 file.
@@ -63,13 +75,15 @@ class ClipRipper:
         Saves the mp3 file with the name {start time}d{duration}.mp3 where both start time and duration are in seconds,
         like the timestamp argument.
         """
+        self.done += 1
+        self.progress()
+
         t_duration = Decimal(str(t[1])) - Decimal(str(t[0]))
         clip_path = self.clips_folder / f'{t[0]}d{t_duration}.mp3'
         stream = ffmpeg.input(str(self.video_path), ss=t[0])
-        # also skip clips already ripped
-        stream = ffmpeg.output(stream, str(clip_path), t=t_duration, **{'c:v': 'copy', 'c:a': 'copy'}).global_args('-n')
+        # skip clips already ripped with -n
+        stream = ffmpeg.output(stream, str(clip_path), t=t_duration).global_args('-n')
         ffmpeg.run(stream, quiet=True)
-        # print('█', end='')
 
 
 def rip_all_audio_clips(video_path: Path, timestamps: tl_type, dest='audio-clips') -> Path:
@@ -84,7 +98,7 @@ def rip_all_audio_clips(video_path: Path, timestamps: tl_type, dest='audio-clips
     clips_folder = video_path.with_suffix('') / dest
     clips_folder.mkdir(parents=True, exist_ok=True)
 
-    clip_ripper = ClipRipper(video_path, clips_folder)
+    clip_ripper = ClipRipper(video_path, clips_folder, len(timestamps))
     # one thread
     # for t in timestamps:
     #     clip_ripper.rip_audio_clip(t)
@@ -168,9 +182,9 @@ def reform_one_clip(video_path: Path, timestamp: t_type, components: list[tuple[
             out_name = f'{component[1]}d{component_duration}.mp3'
             out_path = components_folder / out_name
             stream = ffmpeg.input(str(component[0]), ss=component[1], to=component[2])
-            stream = ffmpeg.output(stream, str(out_path), **{'c:v': 'copy', 'c:a': 'copy'})
+            stream = ffmpeg.output(stream, str(out_path), **{'c:a': 'copy'})
             # ffmpeg.run(stream, quiet=True)
-            ffmpeg.run(stream)
+            ffmpeg.run(stream, overwrite_output=True)
 
             concat_new_path = out_path
         else:
@@ -184,12 +198,11 @@ def reform_one_clip(video_path: Path, timestamp: t_type, components: list[tuple[
     timestamp_duration = Decimal(str(timestamp[1])) - Decimal(str(timestamp[0]))
     out_path = shuffled_clips_folder / f'{timestamp[0]}d{timestamp_duration}.mp3'
     stream = ffmpeg.input(str(concat_file_path), format='concat', safe=0)
-    stream = ffmpeg.output(stream, str(out_path), **{'c:v': 'copy', 'c:a': 'copy'})
+    stream = ffmpeg.output(stream, str(out_path), **{'c:a': 'copy'})
     # ffmpeg.run(stream, quiet=True)
-    ffmpeg.run(stream)
+    ffmpeg.run(stream, overwrite_output=True)
 
 
-# todo: fix
 def reform_shuffled_clips(video_path: Path, timestamps: tl_type, shuffled_clips: list[Path]) -> Path:
     """Cut and join shuffled clips to match the timestamps again.
 
@@ -246,7 +259,8 @@ def generate_new_video(video_path: Path):
     """
     video_folder = videos_folder.with_suffix('')
     shuffled_clips_folder = video_folder / 'audio-shuffled'
-    shuffled_clips = list(shuffled_clips_folder.iterdir())
+    intermediate_clips_folder = video_folder / 'audio-clips-intermediate'
+    shuffled_clips = list(shuffled_clips_folder.iterdir()) + list(intermediate_clips_folder.iterdir())
     shuffled_clips.sort()
 
     # concatenate shuffled audio back into a single audio track
@@ -258,7 +272,7 @@ def generate_new_video(video_path: Path):
     with open(concat_file, 'w') as concat_file:
         concat_file.writelines([f"file '{f}'" for f in shuffled_clips])
     stream = ffmpeg.input(str(concat_file), format='concat', safe=0)
-    stream = ffmpeg.output(stream, str(concat_output), **{'c:v': 'copy', 'c:a': 'copy'})
+    stream = ffmpeg.output(stream, str(concat_output), **{'c:a': 'copy'})
     ffmpeg.run(stream)
 
     # combine new audio with video to create the new video
