@@ -339,7 +339,7 @@ def main():
     # video_path = videos_folder / video_name
     parse_args()
 
-    video_path, subtitle_path = downloader.main(str(videos_folder))
+    video_path, subtitle_path = kingsquit.downloader.main(str(videos_folder))
     if not subtitle_path:
         return False
 
