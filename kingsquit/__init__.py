@@ -63,12 +63,12 @@ class ClipRipper:
         Saves the mp3 file with the name {start time}d{duration}.mp3 where both start time and duration are in seconds,
         like the timestamp argument.
         """
-        duration = Decimal(str(t[1])) - Decimal(str(t[0]))
-        clip_path = self.clips_folder / f'{t[0]}d{duration}.mp3'
+        t_duration = Decimal(str(t[1])) - Decimal(str(t[0]))
+        clip_path = self.clips_folder / f'{t[0]}d{t_duration}.mp3'
         stream = ffmpeg.input(str(self.video_path), ss=t[0])
         # no need to streamcopy because it's fast anyway
         # also skip clips already ripped
-        stream = ffmpeg.output(stream, str(clip_path), t=duration).global_args('-n')
+        stream = ffmpeg.output(stream, str(clip_path), t=t_duration).global_args('-n')
         ffmpeg.run(stream, quiet=True)
         # print('█', end='')
 
@@ -165,10 +165,11 @@ def reform_one_clip(video_path: Path, timestamp: t_type, components: list[tuple[
     concat_list = []
     for component in components:
         if component[1] or component[2]:
-            out_name = f'{component[1]}d{component[2] - component[1]}.mp3'
+            component_duration = Decimal(str(component[1])) - Decimal(str(component[0]))
+            out_name = f'{component[1]}d{component_duration}.mp3'
             out_path = components_folder / out_name
             stream = ffmpeg.input(str(component[0]), ss=component[1], to=component[2])
-            stream = ffmpeg.output(stream, str(out_path))
+            stream = ffmpeg.output(stream, str(out_path), **{'c:v': 'copy', 'c:a': 'copy'})
             ffmpeg.run(stream, quiet=True)
 
             concat_new_path = out_path
@@ -180,9 +181,10 @@ def reform_one_clip(video_path: Path, timestamp: t_type, components: list[tuple[
     with open(concat_file_path, 'w') as concat_file:
         concat_file.writelines(concat_list)
 
-    out_path = shuffled_clips_folder / f'{timestamp[0]}d{Decimal(str(timestamp[1])) - Decimal(str(timestamp[0]))}.mp3'
+    timestamp_duration = Decimal(str(timestamp[1])) - Decimal(str(timestamp[0]))
+    out_path = shuffled_clips_folder / f'{timestamp[0]}d{timestamp_duration}.mp3'
     stream = ffmpeg.input(str(concat_file_path), format='concat', safe=0)
-    stream = ffmpeg.output(stream, str(out_path))
+    stream = ffmpeg.output(stream, str(out_path), **{'c:v': 'copy', 'c:a': 'copy'})
     ffmpeg.run(stream, quiet=True)
 
 
@@ -200,19 +202,18 @@ def reform_shuffled_clips(video_path: Path, timestamps: tl_type, shuffled_clips:
     shuffled_clips_folder = video_folder / 'audio-shuffled'
 
     cursor_file = 0
-    cursor_time = 0.0
+    cursor_time = Decimal('0.0')
     for t in timestamps:
-        # todo: fix representation errors
-        t_duration = t[1] - t[0]
+        t_duration = Decimal(str(t[1])) - Decimal(str(t[0]))
         # cumulative
-        cum_duration = 0.0
+        cum_duration = Decimal('0.0')
         reformed_clip_content = []
         while cum_duration < t_duration:
             clip_to_add = shuffled_clips[cursor_file]
             cursor_file += 1
 
             # clip_duration = Decimal(clip_to_add.stem[clip_to_add.stem.index('d') + 1:])
-            clip_duration = float(clip_to_add.stem[clip_to_add.stem.index('d') + 1:])
+            clip_duration = Decimal(clip_to_add.stem[clip_to_add.stem.index('d') + 1:])
             cum_duration += clip_duration
 
             if cursor_time != 0.0:
@@ -269,32 +270,6 @@ def generate_new_video(video_path: Path):
     ffmpeg.run(stream)
 
 
-# doesn't work, keeping for now for referencing maybe writing reform_shuffled_clips
-def generate_audio_track(video_path: Path, clips_folder: Path, timestamps: tl_type):
-    clips = list(clips_folder.iterdir())
-    concats = []
-
-    last = 0.0
-    for t in timestamps:
-        concats.append(ffmpeg.input(video_path, ss=last, to=t[0]).audio)
-
-        t_duration = t[1] - t[0]
-        cumulative_duration = 0.0
-        while cumulative_duration < t_duration:
-            random_clip = random.choice(clips)
-            cn = random_clip.stem
-            clip_duration = float(cn[cn.index('d')+1:])
-
-            concat_duration = min(clip_duration, t_duration-cumulative_duration)
-            cumulative_duration += concat_duration
-            concats.append(ffmpeg.input(str(random_clip), t=concat_duration))
-        last = t[1]
-
-    out_file = video_path.with_suffix('.mp3')
-    ffmpeg.concat(*concats).output(str(out_file), acodec='copy').run()
-    return out_file
-
-
 def main():
     """Run the program."""
     # if starts with http or https, use ydl to download video and subtitles
@@ -314,9 +289,13 @@ def main():
     video_length_seconds = float(video_info['format']['duration'])
 
     print('Checking for timestamps file')
-    with open(subtitle_path.with_suffix('.json')) as timestamps_file:
-        timestamps = json.load(timestamps_file)
-        print('Loaded timestamps file')
+    try:
+        with open(subtitle_path.with_suffix('.json')) as timestamps_file:
+            timestamps = json.load(timestamps_file)
+            print('Loaded timestamps file')
+    except FileNotFoundError:
+        print('Timestamps file not found!')
+        return False
     # look for subtitle file by name
     # look for subtitle file by extension
     # look for subtitle file with subtitle on pypi
