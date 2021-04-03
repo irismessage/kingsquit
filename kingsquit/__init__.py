@@ -16,7 +16,7 @@ import downloader
 # gold coin
 # todo: add argparse
 # todo: give all relevant folders as arguments instead of getting them from video path - better code
-# todo: add more progress bars - (ripping clips - done) and reforming shuffled clips
+# todo: update docstrings and write new ones
 __version__ = '0.1.0'
 
 
@@ -43,13 +43,8 @@ def verify_timestamp_pairs(timestamps: tl_type, maximum: float) -> bool:
     return True
 
 
-# made this way to work with ThreadPoolExecutor
-class ClipRipper:
-    """Class for storing the video path and output path for ripping clips."""
-
-    def __init__(self, video_path, clips_folder, total):
-        self.video_path = video_path
-        self.clips_folder = clips_folder
+class ProgressBarRunner:
+    def __init__(self, total):
         self.total = total
 
         self.progress_bar_interval = self.total // 10
@@ -57,13 +52,26 @@ class ClipRipper:
         self.done = 0
 
     def progress(self):
+        self.done += 1
+
         if self.done == 1:
-            print(f'Doing {self.total} clips\n█')
+            print(f'Doing {self.total} clips\n█', end='')
         if self.done == self.total:
-            print(f'\nDone ripping {self.done} clips!')
+            print(f'\nDid {self.done} clips!')
         elif self.done >= self.last_log + self.progress_bar_interval:
             print('█', end='')
             self.last_log += self.progress_bar_interval
+
+
+# made this way to work with ThreadPoolExecutor
+class ClipRipper(ProgressBarRunner):
+    """Class for storing the video path and output path for ripping clips."""
+
+    def __init__(self, video_path, clips_folder, total):
+        self.video_path = video_path
+        self.clips_folder = clips_folder
+
+        super().__init__(total)
 
     def rip_audio_clip(self, t: t_type):
         """Take a snippet of audio from a video and save it to its own mp3 file.
@@ -77,7 +85,6 @@ class ClipRipper:
         Saves the mp3 file with the name {start time}d{duration}.mp3 where both start time and duration are in seconds,
         like the timestamp argument.
         """
-        self.done += 1
         self.progress()
 
         t_duration = Decimal(str(t[1])) - Decimal(str(t[0]))
@@ -187,8 +194,7 @@ def reform_one_clip(video_path: Path, timestamp: t_type, components: list[tuple[
             # todo: now that it works with to= in the output instead of input, try streamcopy again
             # stream = ffmpeg.output(stream, str(out_path), to=component[2], **{'c:a': 'copy'})
             stream = ffmpeg.output(stream, str(out_path), to=component[2])
-            # ffmpeg.run(stream, quiet=True)
-            ffmpeg.run(stream, overwrite_output=True)
+            ffmpeg.run(stream, quiet=True, overwrite_output=True)
 
             concat_new_path = out_path
         else:
@@ -203,10 +209,10 @@ def reform_one_clip(video_path: Path, timestamp: t_type, components: list[tuple[
     out_path = shuffled_clips_folder / f'{timestamp[0]}d{timestamp_duration}.mp3'
     stream = ffmpeg.input(str(concat_file_path), format='concat', safe=0)
     stream = ffmpeg.output(stream, str(out_path), **{'c:a': 'copy'})
-    # ffmpeg.run(stream, quiet=True)
-    ffmpeg.run(stream, overwrite_output=True)
+    ffmpeg.run(stream, quiet=True, overwrite_output=True)
 
 
+# todo: add multithreading?
 def reform_shuffled_clips(video_path: Path, timestamps: tl_type, shuffled_clips: list[Path]) -> Path:
     """Cut and join shuffled clips to match the timestamps again.
 
@@ -218,6 +224,8 @@ def reform_shuffled_clips(video_path: Path, timestamps: tl_type, shuffled_clips:
     """
     video_folder = video_path.with_suffix('')
     shuffled_clips_folder = video_folder / 'audio-shuffled'
+
+    progress_bar = ProgressBarRunner(len(timestamps))
 
     cursor_file_index = 0
     cursor_time = Decimal('0.0')
@@ -245,8 +253,8 @@ def reform_shuffled_clips(video_path: Path, timestamps: tl_type, shuffled_clips:
             reformed_clip_content.append((clip_to_add, clip_start, clip_end))
             time_to_fill -= clip_duration
 
-        print(reformed_clip_content)
         reform_one_clip(video_path, t, reformed_clip_content)
+        progress_bar.progress()
 
     return shuffled_clips_folder
 
