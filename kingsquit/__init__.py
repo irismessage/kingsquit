@@ -57,8 +57,10 @@ class ClipRipper:
         self.done = 0
 
     def progress(self):
+        if self.done == 1:
+            print(f'Doing {self.total} clips\n█')
         if self.done == self.total:
-            print('\nDone ripping clips!')
+            print(f'\nDone ripping {self.done} clips!')
         elif self.done >= self.last_log + self.progress_bar_interval:
             print('█', end='')
             self.last_log += self.progress_bar_interval
@@ -181,8 +183,10 @@ def reform_one_clip(video_path: Path, timestamp: t_type, components: list[tuple[
             component_duration = Decimal(str(component[2])) - Decimal(str(component[1]))
             out_name = f'{component[1]}d{component_duration}.mp3'
             out_path = components_folder / out_name
-            stream = ffmpeg.input(str(component[0]), ss=component[1], to=component[2])
-            stream = ffmpeg.output(stream, str(out_path), **{'c:a': 'copy'})
+            stream = ffmpeg.input(str(component[0]), ss=component[1])
+            # todo: now that it works with to= in the output instead of input, try streamcopy again
+            # stream = ffmpeg.output(stream, str(out_path), to=component[2], **{'c:a': 'copy'})
+            stream = ffmpeg.output(stream, str(out_path), to=component[2])
             # ffmpeg.run(stream, quiet=True)
             ffmpeg.run(stream, overwrite_output=True)
 
