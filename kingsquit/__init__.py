@@ -191,9 +191,7 @@ def reform_one_clip(video_path: Path, timestamp: t_type, components: list[tuple[
             out_name = f'{component[1]}d{component_duration}.mp3'
             out_path = components_folder / out_name
             stream = ffmpeg.input(str(component[0]), ss=component[1])
-            # todo: now that it works with to= in the output instead of input, try streamcopy again
-            # stream = ffmpeg.output(stream, str(out_path), to=component[2], **{'c:a': 'copy'})
-            stream = ffmpeg.output(stream, str(out_path), to=component[2])
+            stream = ffmpeg.output(stream, str(out_path), to=component[2], **{'c:a': 'copy'})
             ffmpeg.run(stream, quiet=True, overwrite_output=True)
 
             concat_new_path = out_path
@@ -276,14 +274,15 @@ def generate_new_video(video_path: Path):
     shuffled_clips.sort(key=lambda p: p.name)
 
     # concatenate shuffled audio back into a single audio track
-    concat_folder = video_folder / 'audio-concat'
+    concat_folder = video_folder / 'audio-shuffled-concat'
     concat_folder.mkdir(exist_ok=True)
-    concat_file = concat_folder / 'concat.txt'
+    concat_file_path = concat_folder / 'concat.txt'
     concat_output = concat_folder / 'audio.mp3'
 
-    with open(concat_file, 'w') as concat_file:
-        concat_file.writelines([f"file '{f}'\n" for f in shuffled_clips])
-    stream = ffmpeg.input(str(concat_file), format='concat', safe=0)
+    shuffled_clip_paths_escaped = [str(f).replace('\\', '\\\\') for f in shuffled_clips]
+    with open(concat_file_path, 'w') as concat_file:
+        concat_file.writelines([f"file '{f}'\n" for f in shuffled_clip_paths_escaped])
+    stream = ffmpeg.input(str(concat_file_path), format='concat', safe=0)
     stream = ffmpeg.output(stream, str(concat_output), **{'c:a': 'copy'})
     ffmpeg.run(stream)
 
