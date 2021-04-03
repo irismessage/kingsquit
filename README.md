@@ -2,11 +2,13 @@
 A dialogue randomiser for videos. Just put in a youtube url - video and subtitles used to determine dialogue regions will be downloaded with youtube-dl.    
 Support for local files, subtitle tracks, and audacity label tracks coming soon - see below.
 
+I was listening to the [rtvs podcast](https://wayneradiotv.podbean.com/) when they mentioned [an old vinesauce video](https://youtu.be/RqunFIEI1IY). I watched that, and it inspired me to make this program
+
 ## installation
 ### First you must have ffmpeg installed!
 https://ffmpeg.org/download.html
 
-ffmpeg is the command line media editing tool that this program runs on. It's very useful to have anyway as it basically renders all dumb adware video converters obselete, and allows you to make simple edits without opening an editor. However, you also need it to run this.
+ffmpeg is the command line media editing tool that this program runs on. It's very useful to have anyway as it basically renders all dumb adware video converters obsolete, and allows you to make simple edits without opening an editor. However, you also need it to run this.
 
 On Windows you have to download the executable and put it in the `kingsquit` folder or add it to your PATH. If you have [chocolatey](https://chocolatey.org/) installed it's easier because you can just run `choco install ffmpeg`.
 
