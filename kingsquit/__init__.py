@@ -16,7 +16,6 @@ import downloader
 # gold coin
 # todo: add argparse
 # todo: give all relevant folders as arguments instead of getting them from video path - better code
-# todo: update docstrings and write new ones
 __version__ = '0.1.0'
 
 
@@ -302,6 +301,8 @@ def generate_new_video(video_path: Path):
     shuffled_clips.sort(key=lambda p: p.name)
 
     # concatenate shuffled audio back into a single audio track
+    # todo: fix audio not being long enough - on a ~25 minute video I got ~22 minute audio
+    # a clue - audio repeats sometimes
     concat_folder = video_folder / 'audio-shuffled-concat'
     concat_folder.mkdir(exist_ok=True)
     concat_file_path = concat_folder / 'concat.txt'
