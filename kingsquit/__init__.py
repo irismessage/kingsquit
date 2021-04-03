@@ -3,6 +3,7 @@
 import json
 import argparse
 import random
+import typing
 from decimal import Decimal
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
@@ -18,11 +19,11 @@ import kingsquit.downloader
 # todo: add more argparse
 # todo: give all relevant folders as arguments instead of getting them from video path - better code
 # maybe move the video processing code to its own file like downloader.py and just have this be the main stuff
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 
 
-t_type = tuple[float, float]
-tl_type = list[t_type]
+t_type = typing.Tuple[float, float]
+tl_type = typing.List[t_type]
 videos_folder = Path('kingsquit-videos')
 
 
@@ -364,6 +365,7 @@ def main():
     # look for subtitle file by extension
     # look for subtitle file with subtitle on pypi
     # convert subtitles to label track so user can edit it?
+    # todo: handle timestamps that go over end of video from yt auto subs
     if not verify_timestamp_pairs(timestamps, video_length_seconds):
         print('Invalid timestamps')
         return False
