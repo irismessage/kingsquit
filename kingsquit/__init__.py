@@ -18,8 +18,9 @@ import kingsquit.downloader
 # gold coin
 # todo: add more argparse
 # todo: give all relevant folders as arguments instead of getting them from video path - better code
+# todo: fix invalid timestamps from subs by removing timestamps that go over the duration and fixing ones that overlap
 # maybe move the video processing code to its own file like downloader.py and just have this be the main stuff
-__version__ = '0.1.1'
+__version__ = '0.1.2'
 
 
 t_type = typing.Tuple[float, float]
@@ -374,8 +375,15 @@ def main():
     rip_all_audio_clips(video_path, timestamps)
     rip_intermediate_audio_clips(video_path, timestamps, video_length_seconds)
     print('Shuffling audio')
-    shuffled_clips = shuffle_clips(video_path)
-    reform_shuffled_clips(video_path, timestamps, shuffled_clips)
+    shuffle_success = False
+    while not shuffle_success:
+        try:
+            shuffled_clips = shuffle_clips(video_path)
+            reform_shuffled_clips(video_path, timestamps, shuffled_clips)
+        except ffmpeg.Error:
+            print('\nError shuffling audio, retrying..')
+        else:
+            shuffle_success = True
     print('Creating new video with shuffled audio!')
     generate_new_video(video_path)
     print('Done.')
