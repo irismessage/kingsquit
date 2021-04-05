@@ -20,7 +20,7 @@ setuptools.setup(
     description='A dialogue randomiser for videos.',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/JMcB17/auto_timelapse_script',
+    url='https://github.com/JMcB17/kingsquit',
     packages=setuptools.find_packages(),
     entry_points={
         'console_scripts': [
