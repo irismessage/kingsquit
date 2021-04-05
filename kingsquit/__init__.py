@@ -19,6 +19,7 @@ import kingsquit.downloader
 # todo: add more argparse
 # todo: give all relevant folders as arguments instead of getting them from video path - better code
 # todo: fix invalid timestamps from subs by removing timestamps that go over the duration and fixing ones that overlap
+# todo: readable error message if ffmpeg executable is not found
 # maybe move the video processing code to its own file like downloader.py and just have this be the main stuff
 __version__ = '0.1.3'
 
