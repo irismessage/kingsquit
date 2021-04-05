@@ -34,12 +34,15 @@ The program is designed so you can resume from where you were, if you stop after
 
 ## known bugs, and version info
 
-This (0.1.0) is the first semi-working version of the program. It doesn't have all the features I'd like it to, but it does have plenty of bugs.    
+This, 0.1.2 is the first bugfix release of the first semi-working version of the program. It doesn't have all the features I'd like it to, but it does have plenty of bugs.    
 I'm releasing it because I want to get something out before continuing to work on it, and it's janky enough to produce some unique funny stuff
 
 Known bugs:
-- It will randomly fail with an ffmpeg error while shuffling clips. I think this is when it tries to make a clip that's too short.
+- It will randomly fail with an ffmpeg error while shuffling clips. I think this is when it tries to make a clip that's too short. (patched temporarily in 0.1.2, it will keep trying until it succeeds)
 - The produced shuffled audio is a bit too short for the video, like 22/25. The audio tends to repeat which is funny, but I think that's what's causing the problem partly. I need to make it accurate in general too.
+
+Fixed bugs:
+- 0.1.1: Fixed an incompatibility with type hinting
 
 ## coming soon, hopefully
 - [ ] Edit the marked areas to randomise using an audacity label track
