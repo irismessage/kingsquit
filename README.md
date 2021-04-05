@@ -34,7 +34,7 @@ The program is designed so you can resume from where you were, if you stop after
 
 ## known bugs, and version info
 
-This, 0.1.2 is the first bugfix release of the first semi-working version of the program. It doesn't have all the features I'd like it to, but it does have plenty of bugs.    
+This, 0.1.3 is the first bugfix release of the first semi-working version of the program. It doesn't have all the features I'd like it to, but it does have plenty of bugs.    
 I'm releasing it because I want to get something out before continuing to work on it, and it's janky enough to produce some unique funny stuff
 
 Known bugs:

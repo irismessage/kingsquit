@@ -20,7 +20,7 @@ import kingsquit.downloader
 # todo: give all relevant folders as arguments instead of getting them from video path - better code
 # todo: fix invalid timestamps from subs by removing timestamps that go over the duration and fixing ones that overlap
 # maybe move the video processing code to its own file like downloader.py and just have this be the main stuff
-__version__ = '0.1.2'
+__version__ = '0.1.3'
 
 
 t_type = typing.Tuple[float, float]
