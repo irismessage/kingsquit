@@ -381,8 +381,10 @@ def main():
         try:
             shuffled_clips = shuffle_clips(video_path)
             reform_shuffled_clips(video_path, timestamps, shuffled_clips)
-        except ffmpeg.Error:
+        except ffmpeg.Error as err:
             print('\nError shuffling audio, retrying..')
+            print(err.stdout)
+            print(err.stderr)
         else:
             shuffle_success = True
     print('Creating new video with shuffled audio!')
